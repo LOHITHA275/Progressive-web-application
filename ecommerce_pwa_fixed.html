@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ShopPWA - With Cart</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: url('bgp.png') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .category-card {
+      padding: 10px 15px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.2);
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .category-card.active {
+      background: #6366f1;
+      font-weight: bold;
+    }
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+    }
+    .product-card {
+      background: rgba(255,255,255,0.1);
+      padding: 15px;
+      border-radius: 10px;
+      backdrop-filter: blur(4px);
+      text-align: center;
+    }
+    .product-price {
+      color: #00ffcc;
+      font-weight: bold;
+    }
+    .summary {
+      grid-column: 1 / -1;
+      background: rgba(0,0,0,0.3);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 10px;
+    }
+    .cart {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      max-width: 300px;
+      width: 90%;
+      background: rgba(0,0,0,0.7);
+      border-radius: 10px;
+      padding: 15px;
+    }
+    .cart h3 {
+      margin-top: 0;
+    }
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .cart-total {
+      font-weight: bold;
+      margin-top: 10px;
+      text-align: right;
+    }
+    button {
+      padding: 8px 12px;
+      margin-top: 10px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #4f46e5;
+    }
+    @media(max-width: 500px) {
+      .products-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🛍️ ShopPWA</h1>
+
+  <!-- Categories -->
+  <div class="categories">
+    <div class="category-card active" data-category="all" onclick="filterProducts('all')">🛍️ All</div>
+    <div class="category-card" data-category="electronics" onclick="filterProducts('electronics')">💻 Electronics</div>
+    <div class="category-card" data-category="clothing" onclick="filterProducts('clothing')">👕 Clothing</div>
+    <div class="category-card" data-category="books" onclick="filterProducts('books')">📚 Books</div>
+    <div class="category-card" data-category="home" onclick="filterProducts('home')">🏠 Home</div>
+  </div>
+
+  <!-- Product Grid -->
+  <div class="products-grid" id="products-grid"></div>
+
+  <!-- Cart Sidebar -->
+  <div class="cart" id="cart">
+    <h3>🛒 Cart</h3>
+    <div id="cart-items"></div>
+    <div class="cart-total" id="cart-total">$0.00</div>
+  </div>
+
+  <script>
+    const products = [
+      { id: 1, name: "Wireless Headphones", price: 99.99, category: "electronics", icon: "🎧" },
+      { id: 2, name: "Smart Watch", price: 299.99, category: "electronics", icon: "⌚" },
+      { id: 3, name: "Cotton T-Shirt", price: 29.99, category: "clothing", icon: "👕" },
+      { id: 4, name: "Denim Jeans", price: 79.99, category: "clothing", icon: "👖" },
+      { id: 5, name: "JavaScript Guide", price: 39.99, category: "books", icon: "📖" },
+      { id: 6, name: "Coffee Maker", price: 159.99, category: "home", icon: "☕" }
+    ];
+
+    let filteredProducts = products;
+    let cart = [];
+    let currentCategory = 'all';
+
+    function filterProducts(category) {
+      currentCategory = category;
+      filteredProducts = category === 'all'
+        ? products
+        : products.filter(p => p.category === category);
+
+      document.querySelectorAll('.category-card').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.category === category);
+      });
+
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById('products-grid');
+      grid.innerHTML = '';
+
+      const summary = document.createElement('div');
+      summary.className = 'summary';
+
+      if (filteredProducts.length === 0) {
+        summary.innerHTML = `<h3>❌ No items found in <em>${currentCategory}</em></h3>`;
+        grid.appendChild(summary);
+        return;
+      }
+
+      const totalPrice = filteredProducts.reduce((sum, p) => sum + p.price, 0).toFixed(2);
+      summary.innerHTML = `
+        📊 <strong>${filteredProducts.length}</strong> item(s) in <strong>${currentCategory}</strong><br>
+        💰 Total price: <strong>$${totalPrice}</strong>
+      `;
+      grid.appendChild(summary);
+
+      filteredProducts.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        card.innerHTML = `
+          <div style="font-size:2rem;">${product.icon}</div>
+          <h3>${product.name}</h3>
+          <div class="product-price">$${product.price.toFixed(2)}</div>
+          <button onclick="addToCart(${product.id})">Add to Cart</button>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function addToCart(productId) {
+      const product = products.find(p => p.id === productId);
+      const found = cart.find(item => item.id === productId);
+
+      if (found) {
+        found.quantity += 1;
+      } else {
+        cart.push({ ...product, quantity: 1 });
+      }
+
+      renderCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cart-items');
+      const totalContainer = document.getElementById('cart-total');
+      container.innerHTML = '';
+
+      let total = 0;
+
+      cart.forEach(item => {
+        total += item.quantity * item.price;
+        container.innerHTML += `
+          <div class="cart-item">
+            <span>${item.icon} ${item.name} x${item.quantity}</span>
+            <span>$${(item.price * item.quantity).toFixed(2)}</span>
+          </div>
+        `;
+      });
+
+      totalContainer.textContent = `$${total.toFixed(2)}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderProducts();
+      renderCart();
+    });
+  </script>
+</body>
+</html>
